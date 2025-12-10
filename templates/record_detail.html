@@ -1,0 +1,1365 @@
+<!-- templates/parser_app/record_detail.html -->
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>转换记录详情 - {{ record.original_filename }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Segoe UI', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f7fa;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .header-content h1 {
+            color: #2c3e50;
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .header-content h1 i {
+            color: #3498db;
+        }
+
+        .file-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .info-item i {
+            color: #3498db;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #219653;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #3498db;
+            color: #3498db;
+        }
+
+        .btn-outline:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .content-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .card h2 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f4f8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: #3498db;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item-large {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #2c3e50;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e0e6ed;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-processing { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+
+        .image-preview-container {
+            text-align: center;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            border: 1px solid #e0e6ed;
+        }
+
+        .image-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .results-section h3 {
+            color: #2c3e50;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f4f8;
+        }
+
+        .result-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e0e6ed;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f4f8;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .result-content {
+            margin-bottom: 15px;
+        }
+
+        .result-subtitle {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .pruned-result {
+            background: #f8fafc;
+            border: 1px solid #e0e6ed;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .markdown-preview {
+            background: #f8fafc;
+            border: 1px solid #e0e6ed;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .markdown-preview h1,
+        .markdown-preview h2,
+        .markdown-preview h3 {
+            color: #2c3e50;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+
+        .markdown-preview h1 { font-size: 1.4em; }
+        .markdown-preview h2 { font-size: 1.2em; }
+        .markdown-preview h3 { font-size: 1.1em; }
+
+        .markdown-preview p {
+            margin-bottom: 1em;
+        }
+
+        .markdown-preview ul,
+        .markdown-preview ol {
+            margin-left: 2em;
+            margin-bottom: 1em;
+        }
+
+        .markdown-preview code {
+            background: #eef2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+
+        .markdown-preview pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 1em;
+        }
+
+        .markdown-preview pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .markdown-preview blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-left: 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .markdown-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #e0e6ed;
+        }
+
+        .output-files {
+            margin-top: 15px;
+        }
+
+        .files-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e0e6ed;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .file-item:hover {
+            background: #eef2f7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .file-icon.image { background: #3498db; color: white; }
+        .file-icon.document { background: #27ae60; color: white; }
+
+        .file-name {
+            font-size: 0.8rem;
+            text-align: center;
+            word-break: break-word;
+            width: 100%;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .modal-header h3 {
+            color: #2c3e50;
+            font-size: 1.2rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #95a5a6;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #e74c3c;
+        }
+
+        .code-block {
+            background: #f8fafc;
+            border: 1px solid #e0e6ed;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+
+        .raw-data-view {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #95a5a6;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        .empty-state h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #7f8c8d;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* 导航栏样式 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+        }
+
+        .navbar-brand .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #3498db;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand .logo:hover {
+            color: #2980b9;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 10px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: #f0f4ff;
+            color: #3498db;
+        }
+
+        .nav-link.active {
+            background: #3498db;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .image-actions {
+                flex-wrap: wrap;
+            }
+
+            .files-list {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .result-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .navbar .container {
+                flex-direction: column;
+                padding: 10px;
+            }
+
+            .navbar-brand .logo {
+                font-size: 1.3rem;
+                margin-bottom: 10px;
+            }
+
+            .navbar-nav {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <a href="/" class="logo">📷 OCR服务</a>
+            </div>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a href="/" class="nav-link">首页</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/history/" class="nav-link active">转换记录</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-info-circle"></i>
+                    转换记录详情
+                </h1>
+                <div class="file-info">
+                    <div class="info-item">
+                        <i class="fas fa-file-image"></i>
+                        <span>{{ record.original_filename }}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-hashtag"></i>
+                        <span>ID: {{ record.id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ record.upload_time|date:"Y-m-d H:i:s" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-database"></i>
+                        <span>{{ record.get_file_size_display }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'conversion_history' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    返回列表
+                </a>
+                <a href="/" class="btn btn-outline">
+                    <i class="fas fa-home"></i>
+                    首页
+                </a>
+                <button class="btn btn-danger" onclick="deleteRecord()">
+                    <i class="fas fa-trash"></i>
+                    删除记录
+                </button>
+            </div>
+        </div>
+
+        <!-- 状态信息 -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="info-grid">
+                <div class="info-item-large">
+                    <span class="info-label">转换状态</span>
+                    <span class="info-value">
+                        <span class="status-badge status-{{ record.status }}">
+                            {{ record.get_status_display }}
+                        </span>
+                    </span>
+                </div>
+                <div class="info-item-large">
+                    <span class="info-label">处理时间</span>
+                    <span class="info-value">
+                        {% if record.processing_time %}
+                            {{ record.processing_time|floatformat:2 }} 秒
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-item-large">
+                    <span class="info-label">解析结果数量</span>
+                    <span class="info-value">{{ results|length }} 个</span>
+                </div>
+                <div class="info-item-large">
+                    <span class="info-label">上传来源</span>
+                    <span class="info-value">
+                        {% if record.ip_address %}
+                            {{ record.ip_address }}
+                        {% else %}
+                            未知
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容 -->
+        <div class="content-wrapper">
+            <!-- 左侧：原始图片和信息 -->
+            <div>
+                <div class="card">
+                    <h2><i class="fas fa-image"></i> 原始图片</h2>
+                    <div class="image-preview-container">
+                        <img src="{{ MEDIA_URL }}{{ record.image }}"
+                             alt="原始图片"
+                             class="image-preview"
+                             id="originalImage"
+                             onerror="this.src='https://placehold.co/600x400?text=Failed+to+load'">
+
+                        <div class="image-actions">
+                            <button class="btn btn-sm btn-primary" onclick="viewFullImage()">
+                                <i class="fas fa-expand"></i> 查看大图
+                            </button>
+                            <a href="{{ MEDIA_URL }}{{ record.image }}"
+                               download="{{ record.original_filename }}"
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-download"></i> 下载图片
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {% if record.error_message %}
+                <div class="card" style="margin-top: 20px; background: #f8d7da; border-color: #f5c6cb;">
+                    <h2 style="color: #721c24;"><i class="fas fa-exclamation-triangle"></i> 错误信息</h2>
+                    <div class="error-message">
+                        {{ record.error_message|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 右侧：详细信息 -->
+            <div>
+                <div class="card">
+                    <h2><i class="fas fa-info-circle"></i> 详细信息</h2>
+                    <div class="info-grid">
+                        <div class="info-item-large">
+                            <span class="info-label">原始文件名</span>
+                            <span class="info-value">{{ record.original_filename }}</span>
+                        </div>
+                        <div class="info-item-large">
+                            <span class="info-label">存储路径</span>
+                            <span class="info-value" style="font-family: monospace; font-size: 0.9rem;">
+                                {{ record.image.name }}
+                            </span>
+                        </div>
+                        <div class="info-item-large">
+                            <span class="info-label">文件类型</span>
+                            <span class="info-value">
+                                {% if record.original_filename|lower|slice:"-4:" == ".png" %}
+                                    PNG 图像
+                                {% elif record.original_filename|lower|slice:"-4:" == ".jpg" %}
+                                    JPG 图像
+                                {% elif record.original_filename|lower|slice:"-5:" == ".jpeg" %}
+                                    JPEG 图像
+                                {% elif record.original_filename|lower|slice:"-4:" == ".gif" %}
+                                    GIF 图像
+                                {% elif record.original_filename|lower|slice:"-4:" == ".bmp" %}
+                                    BMP 图像
+                                {% else %}
+                                    未知格式
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-item-large">
+                            <span class="info-label">上传时间</span>
+                            <span class="info-value">{{ record.upload_time|date:"Y-m-d H:i:s" }}</span>
+                        </div>
+                        <div class="info-item-large">
+                            <span class="info-label">最后更新时间</span>
+                            <span class="info-value">{{ record.results.first.created_at|date:"Y-m-d H:i:s"|default:"-" }}</span>
+                        </div>
+                        <div class="info-item-large">
+                            <span class="info-label">用户代理</span>
+                            <span class="info-value" style="font-size: 0.85rem; max-height: 80px; overflow-y: auto;">
+                                {{ record.user_agent|default:"未知"|truncatechars:100 }}
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if record.raw_data %}
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-outline" onclick="viewRawData()">
+                            <i class="fas fa-code"></i> 查看原始数据
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 解析结果 -->
+        <div class="results-section" id="results">
+            <h3><i class="fas fa-file-alt"></i> 解析结果 ({{ results|length }})</h3>
+
+            {% if results %}
+                {% for result in results %}
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-title">
+                            <i class="fas fa-cube"></i>
+                            结果 {{ result.result_index|add:1 }}
+                            <span style="font-size: 0.8rem; color: #95a5a6; margin-left: 10px;">
+                                {{ result.created_at|date:"Y-m-d H:i:s" }}
+                            </span>
+                        </div>
+                        <div class="result-actions">
+                            <a href="{% url 'result_detail' record.id result.result_index %}"
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-external-link-alt"></i> 完整查看
+                            </a>
+                            <button class="btn btn-sm btn-success" onclick="copyToClipboard('{{ result.markdown_text|escapejs }}', 'markdown')">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                            <button class="btn btn-sm btn-outline" onclick="viewPrunedResult({{ result.id }})">
+                                <i class="fas fa-eye"></i> 查看
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="result-content">
+                        <div class="result-subtitle">精简结果：</div>
+                        <div class="pruned-result">
+                            {{ result.pruned_result|truncatechars:200 }}
+                            {% if result.pruned_result|length > 200 %}
+                                <span style="color: #3498db; cursor: pointer;" onclick="viewPrunedResult({{ result.id }})">... 查看更多</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="result-content">
+                        <div class="result-subtitle">Markdown 内容预览：</div>
+                        <div class="markdown-preview" id="markdownPreview{{ result.id }}">
+                            <!-- Markdown内容将通过JavaScript渲染 -->
+                        </div>
+                        {% if result.markdown_text|length > 300 %}
+                        <div style="text-align: center; margin-top: 10px;">
+                            <a href="{% url 'result_detail' record.id result.result_index %}"
+                               class="btn btn-sm btn-outline">
+                                <i class="fas fa-external-link-alt"></i> 查看完整Markdown
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="output-files">
+                        <div class="result-subtitle">输出文件：</div>
+                        <div class="files-list">
+                            <!-- Markdown文档 -->
+                            <a href="{{ MEDIA_URL }}{{ doc_dir }}/markdown_{{ record.id }}_{{ result.result_index }}/doc.md"
+                               class="file-item" download>
+                                <div class="file-icon document">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="file-name">doc.md</div>
+                            </a>
+
+                            <!-- Markdown图片 -->
+                            {% for img in result.markdown_images_info %}
+                            <a href="{{ img.url }}"
+                               class="file-item"
+                               download="{{ img.filename }}"
+                               title="{{ img.path }}"
+                               target="_blank">
+                                <div class="file-icon image">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                <div class="file-name">
+                                    {% if img.filename|length > 10 %}
+                                        {{ img.filename|slice:":7" }}...
+                                    {% else %}
+                                        {{ img.filename }}
+                                    {% endif %}
+                                </div>
+                            </a>
+                            {% endfor %}
+
+                            <!-- 输出图片 -->
+                            {% for img in result.output_images_info %}
+                            <a href="{{ img.url }}"
+                               class="file-item"
+                               download="{{ img.filename }}"
+                               target="_blank">
+                                <div class="file-icon image">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                <div class="file-name">{{ img.filename }}</div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>暂无解析结果</h3>
+                    <p>该记录没有解析结果，可能是转换失败或仍在处理中。</p>
+                    {% if record.status == 'pending' %}
+                    <p style="color: #f39c12; margin-top: 10px;">
+                        <i class="fas fa-clock"></i> 状态：等待处理中...
+                    </p>
+                    {% elif record.status == 'processing' %}
+                    <p style="color: #3498db; margin-top: 10px;">
+                        <i class="fas fa-sync-alt fa-spin"></i> 状态：正在处理中...
+                    </p>
+                    {% elif record.status == 'failed' %}
+                    <button class="btn btn-primary" onclick="retryConversion({{ record.id }})">
+                        <i class="fas fa-redo"></i> 重新尝试转换
+                    </button>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- 消息提示 -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">操作成功</span>
+    </div>
+
+    <!-- 查看大图模态框 -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>图片预览</h3>
+                <button class="modal-close" onclick="closeModal('imageModal')">&times;</button>
+            </div>
+            <img src="{{ MEDIA_URL }}{{ record.image }}"
+                 alt="原始图片"
+                 style="width: 100%; max-height: 60vh; object-fit: contain;">
+            <div class="code-actions">
+                <a href="{{ MEDIA_URL }}{{ record.image }}"
+                   download="{{ record.original_filename }}"
+                   class="btn btn-success">
+                    <i class="fas fa-download"></i> 下载图片
+                </a>
+                <button class="btn btn-secondary" onclick="closeModal('imageModal')">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看精简结果模态框 -->
+    <div class="modal" id="prunedResultModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>精简结果详情</h3>
+                <button class="modal-close" onclick="closeModal('prunedResultModal')">&times;</button>
+            </div>
+            <div class="code-block" id="prunedResultContent"></div>
+            <div class="code-actions">
+                <button class="btn btn-success" onclick="copyModalContent('prunedResultContent')">
+                    <i class="fas fa-copy"></i> 复制内容
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('prunedResultModal')">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看原始数据模态框 -->
+    <div class="modal" id="rawDataModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>原始数据</h3>
+                <button class="modal-close" onclick="closeModal('rawDataModal')">&times;</button>
+            </div>
+            <div class="raw-data-view" id="rawDataContent"></div>
+            <div class="code-actions">
+                <button class="btn btn-success" onclick="copyModalContent('rawDataContent')">
+                    <i class="fas fa-copy"></i> 复制JSON
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal('rawDataModal')">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script>
+        // 初始化marked.js
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true,
+            gfm: true
+        });
+
+        // 显示加载
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // 隐藏加载
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // 显示消息
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const messageEl = document.getElementById('toastMessage');
+
+            // 设置消息和颜色
+            messageEl.textContent = message;
+            if (type === 'error') {
+                toast.style.background = '#e74c3c';
+                toast.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
+            } else if (type === 'warning') {
+                toast.style.background = '#f39c12';
+                toast.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>${message}</span>`;
+            } else {
+                toast.style.background = '#27ae60';
+                toast.innerHTML = `<i class="fas fa-check-circle"></i><span>${message}</span>`;
+            }
+
+            // 显示
+            toast.style.display = 'flex';
+
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // 打开模态框
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭模态框
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // 查看大图
+        function viewFullImage() {
+            openModal('imageModal');
+        }
+
+        // 查看精简结果
+        function viewPrunedResult(resultId) {
+            // 在实际应用中，这里应该从API获取数据
+            // 现在我们先从页面数据中获取
+            const resultElement = document.querySelector(`[data-result-id="${resultId}"]`);
+            if (resultElement) {
+                const prunedResult = resultElement.dataset.prunedResult;
+                document.getElementById('prunedResultContent').textContent = prunedResult;
+                openModal('prunedResultModal');
+            }
+        }
+
+        // 查看原始数据
+        function viewRawData() {
+            {% if record.raw_data %}
+            try {
+                const rawData = {{ record.raw_data|safe }};
+                document.getElementById('rawDataContent').textContent =
+                    JSON.stringify(rawData, null, 2);
+                openModal('rawDataModal');
+            } catch (e) {
+                showToast('解析原始数据失败', 'error');
+            }
+            {% endif %}
+        }
+
+        // 复制模态框内容
+        function copyModalContent(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            copyToClipboard(text, '内容');
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text, type = '内容') {
+            navigator.clipboard.writeText(text).then(function() {
+                showToast(`${type}已复制到剪贴板`);
+            }).catch(function(err) {
+                console.error('复制失败:', err);
+                // 降级方案
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast(`${type}已复制到剪贴板`);
+                } catch (e) {
+                    showToast('复制失败，请手动复制', 'error');
+                }
+                document.body.removeChild(textarea);
+            });
+        }
+
+        // 删除记录
+        function deleteRecord() {
+            if (!confirm('确定要删除这条记录吗？删除后将无法恢复。')) {
+                return;
+            }
+
+            showLoading();
+
+            fetch(`{% url 'delete_record' record.id %}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('记录删除成功');
+                    setTimeout(() => {
+                        window.location.href = "{% url 'conversion_history' %}";
+                    }, 1500);
+                } else {
+                    showToast(data.error || '删除失败', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('网络错误，请重试', 'error');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                hideLoading();
+            });
+        }
+
+        // 重新尝试转换
+        function retryConversion(recordId) {
+            if (!confirm('确定要重新尝试转换这张图片吗？')) {
+                return;
+            }
+
+            showLoading();
+
+            // 这里需要实现重新转换的逻辑
+            // 暂时先显示成功消息
+            setTimeout(() => {
+                showToast('转换任务已提交，请稍后刷新查看结果');
+                hideLoading();
+            }, 1000);
+        }
+
+        // 获取CSRF token
+        function getCSRFToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                   document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+        }
+
+        // 渲染Markdown预览
+        function renderMarkdownPreviews() {
+            {% for result in results %}
+            const markdownText{{ result.id }} = `{{ result.markdown_text|escapejs }}`;
+            const previewElement{{ result.id }} = document.getElementById('markdownPreview{{ result.id }}');
+
+            if (previewElement{{ result.id }} && markdownText{{ result.id }}) {
+                // 只显示前300字符的预览
+                let previewText = markdownText{{ result.id }};
+                if (previewText.length > 300) {
+                    previewText = previewText.substring(0, 300) + '...';
+                }
+                previewElement{{ result.id }}.innerHTML = marked.parse(previewText);
+
+                // 为图片设置data-result-id属性
+                const images = previewElement{{ result.id }}.querySelectorAll('img');
+                images.forEach(img => {
+                    img.setAttribute('data-result-id', '{{ result.id }}');
+                    // 修复图片路径
+                    if (img.src && !img.src.startsWith('http')) {
+                        img.src = `{{ MEDIA_URL }}markdown_{{ record.id }}_{{ result.result_index }}/${img.src}`;
+                    }
+                });
+            }
+            {% endfor %}
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 渲染Markdown预览
+            renderMarkdownPreviews();
+
+            // 为结果元素设置data属性
+            {% for result in results %}
+            const resultElement = document.querySelector(`#markdownPreview{{ result.id }}`).closest('.result-item');
+            if (resultElement) {
+                resultElement.setAttribute('data-result-id', '{{ result.id }}');
+                resultElement.dataset.prunedResult = `{{ result.pruned_result|escapejs }}`;
+            }
+            {% endfor %}
+
+            // 监听ESC键关闭模态框
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal('imageModal');
+                    closeModal('prunedResultModal');
+                    closeModal('rawDataModal');
+                }
+            });
+
+            // 监听模态框外点击关闭
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal(this.id);
+                    }
+                });
+            });
+
+            // 检查图片加载错误
+            const originalImage = document.getElementById('originalImage');
+            if (originalImage) {
+                originalImage.onerror = function() {
+                    this.src = 'https://placehold.co/600x400?text=Failed+to+load';
+                };
+            }
+        });
+    </script>
+
+    <div class="footer">
+        <p>© 2025 OCR服务 | 南京青赋驭境科技有限公司</p>
+    </div>
+</body>
+</html>

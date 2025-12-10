@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>解析结果</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .result-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        .original-image {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .original-image h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .results-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .result-item {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #eef2ff;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .result-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.1);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .result-index {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .result-content {
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .result-text {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-view {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-copy {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #0da271;
+        }
+
+        .btn-download {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #e08c0a;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #666;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success-message.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 导航栏样式 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+        }
+
+        .navbar-brand .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand .logo:hover {
+            color: #764ba2;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 10px;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: #f0f4ff;
+            color: #667eea;
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .result-actions {
+                width: 100%;
+            }
+
+            .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .navbar .container {
+                flex-direction: column;
+                padding: 10px;
+            }
+
+            .navbar-brand .logo {
+                font-size: 1.3rem;
+                margin-bottom: 10px;
+            }
+
+            .navbar-nav {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <a href="/" class="logo">📷 OCR服务</a>
+            </div>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a href="/" class="nav-link">首页</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/history/" class="nav-link">转换记录</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <div class="container">
+        <div class="header">
+            <h1>✅ 解析完成</h1>
+            <p>文件名: {{ filename }}</p>
+            <a href="/" class="back-btn">
+                ← 返回首页
+            </a>
+        </div>
+
+        <div class="result-container">
+            <div class="original-image">
+                <h2>原始图片</h2>
+                <img src="{{ MEDIA_URL }}{{ original_image }}" alt="原始图片" class="image-preview">
+            </div>
+
+            <div class="results-section">
+                <h2>解析结果</h2>
+                {% for result in results %}
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-index">结果 {{ forloop.counter }}</div>
+                    </div>
+
+                    <div class="result-content">
+                        <div class="result-title">精简结果:</div>
+                        <div class="result-text">{{ result.pruned_result }}</div>
+                    </div>
+
+                    <div class="result-content">
+                        <div class="result-title">Markdown 内容:</div>
+                        <div class="result-text">{{ result.markdown|truncatechars:500 }}</div>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn btn-copy" onclick="copyToClipboard('{{ result.markdown|escapejs }}')">
+                            📋 复制Markdown
+                        </button>
+                        <a href="{{ MEDIA_URL }}markdown_{{ image_id }}_{{ result.index }}/doc.md"
+                           class="btn btn-download" download>
+                            ⬇️ 下载文档
+                        </a>
+                        <a href="{% url 'result_detail' image_id result.index %}"
+                           class="btn btn-view">
+                            🔍 查看详情
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="no-results">
+                    <p>没有解析结果</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="success-message" id="successMessage">
+            内容已复制到剪贴板！
+        </div>
+
+        <div class="footer">
+            <p>所有结果已保存到数据库和文件系统中</p>
+            <p>Markdown文档和图片保存在: media/markdown_{{ image_id }}_*/</p>
+            <p>© 2025 OCR服务 | 南京青赋驭境科技有限公司</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                showSuccess();
+            }).catch(function(err) {
+                console.error('复制失败:', err);
+            });
+        }
+
+        function showSuccess() {
+            const message = document.getElementById('successMessage');
+            message.classList.add('active');
+            setTimeout(() => {
+                message.classList.remove('active');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
